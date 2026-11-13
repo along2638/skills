@@ -1,0 +1,21 @@
+# 本地助手运行时数据（会话记忆、项目缓存），不入库
+.work*/
+
+# 技能打包产物，由源码目录按需生成
+*.zip
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 临时文件
+*.tmp
+*.log
+__pycache__/

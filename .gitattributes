@@ -1,0 +1,7 @@
+# 统一按 LF 存储，避免跨平台换行符噪音
+* text=auto eol=lf
+
+*.md text eol=lf
+*.png binary
+*.jpg binary
+*.zip binary
