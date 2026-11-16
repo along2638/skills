@@ -139,12 +139,13 @@ describe('OrderListView', () => {
 
   it('加载成功后渲染订单行', async () => {
     vi.mocked(orderApi.fetchOrderList).mockResolvedValue({
-      list: [
+      records: [
         { id: '1', orderNo: 'SO202601001', amount: '99.00', status: 'PAID', createTime: '2026-01-01 10:00:00' },
       ],
       total: 1,
       pageNum: 1,
       pageSize: 10,
+      pages: 1,
     })
 
     const wrapper = mount(OrderListView, { global: { plugins: [createPinia()] } })
@@ -191,10 +192,11 @@ describe('useOrderStore', () => {
 
   it('拉取列表后写入数据与总数', async () => {
     vi.mocked(orderApi.fetchOrderList).mockResolvedValue({
-      list: [{ id: '1', orderNo: 'SO1', amount: '1.00', status: 'PAID', createTime: '' }],
+      records: [{ id: '1', orderNo: 'SO1', amount: '1.00', status: 'PAID', createTime: '' }],
       total: 1,
       pageNum: 1,
       pageSize: 10,
+      pages: 1,
     })
 
     const store = useOrderStore()
@@ -207,10 +209,11 @@ describe('useOrderStore', () => {
 
   it('失败时保留旧数据并记录错误', async () => {
     vi.mocked(orderApi.fetchOrderList).mockResolvedValue({
-      list: [{ id: '1', orderNo: 'SO1', amount: '1.00', status: 'PAID', createTime: '' }],
+      records: [{ id: '1', orderNo: 'SO1', amount: '1.00', status: 'PAID', createTime: '' }],
       total: 1,
       pageNum: 1,
       pageSize: 10,
+      pages: 1,
     })
     const store = useOrderStore()
     await store.fetchList()
@@ -223,7 +226,7 @@ describe('useOrderStore', () => {
   })
 
   it('翻页时传递正确的分页参数', async () => {
-    vi.mocked(orderApi.fetchOrderList).mockResolvedValue({ list: [], total: 0, pageNum: 3, pageSize: 20 })
+    vi.mocked(orderApi.fetchOrderList).mockResolvedValue({ records: [], total: 0, pageNum: 3, pageSize: 20, pages: 0 })
     const store = useOrderStore()
 
     await store.fetchList({ pageNum: 3, pageSize: 20 })
@@ -245,18 +248,18 @@ import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 
 export const server = setupServer(
-  http.get('/api/order/list', ({ request }) => {
+  http.get('/api/v1/orders', ({ request }) => {
     const url = new URL(request.url)
     const pageNum = Number(url.searchParams.get('pageNum') ?? 1)
     return HttpResponse.json({
       code: 0,
-      message: 'ok',
+      message: 'success',
       traceId: 'test-trace',
-      data: { list: [], total: 0, pageNum, pageSize: 10 },
+      data: { records: [], total: 0, pageNum, pageSize: 10, pages: 0 },
     })
   }),
-  http.post('/api/order/:id/cancel', () =>
-    HttpResponse.json({ code: 40001, message: '订单已发货，无法取消', traceId: 'test-trace', data: null }),
+  http.post('/api/v1/orders/:id/cancel', () =>
+    HttpResponse.json({ code: 30102, message: '订单已发货，无法取消', traceId: 'test-trace', data: null }),
   ),
 )
 ```

@@ -64,10 +64,11 @@ export interface OrderQuery {
 }
 
 export interface PageResult<T> {
-  list: T[]
+  records: T[]
   total: number
   pageNum: number
   pageSize: number
+  pages: number
 }
 ```
 
@@ -84,7 +85,7 @@ import type { OrderDetail, OrderItem, OrderQuery, PageResult } from '@/types/ord
 export const orderApi = {
   fetchOrderList(params: OrderQuery, signal?: AbortSignal) {
     return request<PageResult<OrderItem>>({
-      url: '/order/list',
+      url: '/orders',
       method: 'get',
       params,
       signal,
@@ -93,14 +94,14 @@ export const orderApi = {
 
   fetchOrderDetail(id: string) {
     return request<OrderDetail>({
-      url: `/order/${id}`,
+      url: `/orders/${id}`,
       method: 'get',
     })
   },
 
   cancelOrder(id: string, reason: string) {
     return request<void>({
-      url: `/order/${id}/cancel`,
+      url: `/orders/${id}/cancel`,
       method: 'post',
       data: { reason },
     })
@@ -141,7 +142,7 @@ export const useOrderStore = defineStore('order', () => {
       if (current !== requestId) {
         return
       }
-      list.value = result.list
+      list.value = result.records
       total.value = result.total
     } catch (e) {
       if (current !== requestId) {
@@ -559,10 +560,11 @@ describe('useOrderStore', () => {
 
   it('加载成功后写入列表与总数', async () => {
     vi.mocked(orderApi.fetchOrderList).mockResolvedValue({
-      list: [createOrder({ id: '1', orderNo: 'SO202601001' })],
+      records: [createOrder({ id: '1', orderNo: 'SO202601001' })],
       total: 1,
       pageNum: 1,
       pageSize: 10,
+      pages: 1,
     })
 
     const store = useOrderStore()
@@ -576,10 +578,11 @@ describe('useOrderStore', () => {
 
   it('失败时保留旧数据并记录错误', async () => {
     vi.mocked(orderApi.fetchOrderList).mockResolvedValue({
-      list: [createOrder()],
+      records: [createOrder()],
       total: 1,
       pageNum: 1,
       pageSize: 10,
+      pages: 1,
     })
     const store = useOrderStore()
     await store.fetchList(baseQuery)
@@ -600,12 +603,12 @@ describe('useOrderStore', () => {
       .mockImplementationOnce(
         () => new Promise((resolve) => { resolveFirst = resolve }) as Promise<never>,
       )
-      .mockResolvedValueOnce({ list: [createOrder({ id: '2' })], total: 1, pageNum: 2, pageSize: 10 })
+      .mockResolvedValueOnce({ records: [createOrder({ id: '2' })], total: 1, pageNum: 2, pageSize: 10, pages: 1 })
 
     const first = store.fetchList({ pageNum: 1, pageSize: 10 })
     await store.fetchList({ pageNum: 2, pageSize: 10 })
 
-    resolveFirst({ list: [createOrder({ id: '1' })], total: 1, pageNum: 1, pageSize: 10 })
+    resolveFirst({ records: [createOrder({ id: '1' })], total: 1, pageNum: 1, pageSize: 10, pages: 1 })
     await first
 
     expect(store.list[0]?.id).toBe('2')

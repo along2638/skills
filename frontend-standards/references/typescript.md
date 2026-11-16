@@ -115,7 +115,7 @@ window.payCallback = (payload: any) => handlePayResult(payload)
 
 ```ts
 // 反例：在业务代码里层层断言
-const list = (res.data as any).list as OrderItem[]
+const list = (res.data as any).records as OrderItem[]
 
 // 正例：请求函数带泛型
 const list = await orderApi.fetchOrderList(query) // 返回 OrderListResult
@@ -206,13 +206,17 @@ export interface ApiResponse<T> {
 export interface PageQuery {
   pageNum: number
   pageSize: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
+// 字段名与后端 PageResp 一一对应：records 不是 list
 export interface PageResult<T> {
-  list: T[]
+  records: T[]
   total: number
   pageNum: number
   pageSize: number
+  pages: number
 }
 
 export type Nullable<T> = T | null
@@ -248,7 +252,7 @@ export interface OrderDetail extends OrderItem {
 
 export const orderApi = {
   fetchOrderList(params: OrderQuery) {
-    return request<PageResult<OrderItem>>({ url: '/order/list', method: 'get', params })
+    return request<PageResult<OrderItem>>({ url: '/orders', method: 'get', params })
   },
   fetchOrderDetail(id: string) {
     return request<OrderDetail>({ url: `/order/${id}`, method: 'get' })

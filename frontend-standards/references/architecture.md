@@ -136,6 +136,8 @@ export default orderRoutes
 - `meta` 至少包含 `title`，需要权限的加 `permission`，不在菜单展示的加 `hidden`。
 - 路由 `path` 用小写 kebab-case：`/order/list`、`/user-center/profile`。
 
+> 注意区分两类路径：**前端路由**（`/order/list`）属于浏览器地址，可以按页面语义命名；**接口路径**（`/api/v1/orders?pageNum=1`）必须遵循后端契约的资源式命名，禁止写成 `/order/list`。两者不要互相参照命名。
+
 ### 3.2 权限模型
 
 | 层级 | 实现 | 作用 | 边界 |

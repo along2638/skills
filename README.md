@@ -36,6 +36,7 @@ skills/
         ├── vue-coding.md                   # 组件写法、props/emits、响应式、生命周期
         ├── typescript.md                   # 类型设计、泛型、类型收窄、禁用 any
         ├── state-and-data.md               # Pinia、请求层、错误处理、三态、表单
+        ├── api-contract.md                 # 接口契约承接侧：路径、分页、错误码、幂等
         ├── ui-and-styles.md                # 样式分层、设计令牌、组件库定制、可访问性
         ├── quality-tooling.md              # ESLint/Prettier/Stylelint、husky、CI
         ├── testing.md                      # 单元测试、组件测试、MSW、Playwright
@@ -82,6 +83,26 @@ skills/
 关键约定：`request<T>` 泛型贯穿接口层、`BizError` 统一错误、`loading/error/empty` 三态必做、路由懒加载、`vue-tsc --noEmit` 作为类型门禁（Vite 构建不检查类型）。
 
 > 若项目是 Vue 2 + Options API + webpack，不要套用组合式 API、Pinia、Vite 配置，只借用分层与工程化思想。
+
+## 前后端契约对齐
+
+两个技能不是独立的两套文档，接口层必须能对上。契约的权威定义在后端 `java-backend-standards/references/api-contract.md`，前端在 `frontend-standards/references/api-contract.md` 承接，两边各有一张同源的**对齐表**。
+
+| 契约项 | 后端定义 | 前端承接 |
+|---|---|---|
+| 路径 | `/api/v1/{复数资源}`，动作用子路径 | `baseURL=/api/v1`，接口文件只写 `/orders` |
+| 响应包 | `code` / `message` / `data` / `traceId` | 拦截器解包 `data`，只判 `code === 0` |
+| 分页响应 | `records` / `total` / `pageNum` / `pageSize` / `pages` | 同名取值，**不用 `list`** |
+| 分页请求 | `pageNum` / `pageSize` / `sortBy` / `sortOrder` | 同参数透传，`pageSize ≤ 100` |
+| ID / 金额 | 均以字符串返回 | 不转数字、不做金额运算 |
+| 时间 | `yyyy-MM-dd HH:mm:ss`，东八区 | 显式指定格式解析 |
+| 枚举 | code 字符串，可新增值 | 未知值必须有兜底展示 |
+| 校验失败 | 400 + `10001` + `[{field,message}]` | 按 `field` 回填表单 |
+| 认证失效 | 401 + `20001` | 清 token 跳登录，防重复跳转 |
+| 幂等 | 请求头 `Idempotency-Key` | 创建/支付类请求携带并复用 |
+| 下载 | 裸流 + `Content-Disposition` | `responseType: 'blob'` |
+
+变更规则：**破坏性变更（改字段名、改类型、删字段）必须升 `/api/v2`**；新增字段与枚举值属兼容变更，前端需有兜底。改契约时同步修改四处：后端契约文件、前端契约文件、OpenAPI 注解、示例数据。
 
 ## 安装
 

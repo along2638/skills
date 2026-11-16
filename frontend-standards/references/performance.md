@@ -25,7 +25,7 @@ import { onCLS, onINP, onLCP, onTTFB } from 'web-vitals'
 export function reportVitals() {
   const send = (metric: { name: string; value: number; id: string }) => {
     navigator.sendBeacon?.(
-      '/api/metrics/vitals',
+      '/api/v1/metrics/vitals',
       JSON.stringify({ name: metric.name, value: metric.value, id: metric.id, path: location.pathname }),
     )
   }

@@ -192,7 +192,7 @@ export default defineConfig(({ mode }) => {
 | 变量 | 示例 | 说明 |
 |---|---|---|
 | `VITE_APP_TITLE` | `订单后台` | 页面标题 |
-| `VITE_API_BASE_URL` | `/api` | 接口前缀，生产由网关转发 |
+| `VITE_API_BASE_URL` | `/api/v1` | 接口前缀（含版本），生产由网关转发 |
 | `VITE_PROXY_TARGET` | `http://127.0.0.1:8080` | 仅本地代理使用 |
 | `VITE_PUBLIC_PATH` | `/admin/` | 部署子目录时的 base |
 | `VITE_ENABLE_MOCK` | `false` | 是否启用 MSW |
@@ -200,7 +200,7 @@ export default defineConfig(({ mode }) => {
 ```bash
 # .env.development
 VITE_APP_TITLE=订单后台
-VITE_API_BASE_URL=/api
+VITE_API_BASE_URL=/api/v1
 VITE_PROXY_TARGET=http://127.0.0.1:8080
 VITE_ENABLE_MOCK=true
 ```

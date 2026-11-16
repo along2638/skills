@@ -38,7 +38,7 @@ export const useOrderStore = defineStore('order', () => {
     error.value = null
     try {
       const result = await orderApi.fetchOrderList(query.value)
-      list.value = result.list
+      list.value = result.records
       total.value = result.total
     } catch (e) {
       // 失败时保留旧数据，只标记错误，避免页面闪空
@@ -96,12 +96,15 @@ import type { ApiResponse } from '@/types/api'
 export class BizError extends Error {
   readonly code: number
   readonly traceId: string
+  /** 校验失败时后端返回 [{ field, message }]，页面可回填表单 */
+  readonly data: unknown
 
-  constructor(code: number, message: string, traceId = '') {
+  constructor(code: number, message: string, traceId = '', data: unknown = null) {
     super(message)
     this.name = 'BizError'
     this.code = code
     this.traceId = traceId
+    this.data = data
   }
 }
 
@@ -136,7 +139,7 @@ instance.interceptors.response.use(
       return response.data
     }
     if (body.code !== 0) {
-      throw new BizError(body.code, body.message || '请求失败', body.traceId)
+      throw new BizError(body.code, body.message || '请求失败', body.traceId, body.data)
     }
     return body.data
   },
@@ -150,16 +153,32 @@ instance.interceptors.response.use(
 
     if (status === 401) {
       await handleUnauthorized()
-      return Promise.reject(new BizError(401, '登录已过期，请重新登录'))
+      return Promise.reject(
+        new BizError(body?.code ?? 20001, body?.message ?? '登录已过期，请重新登录'),
+      )
     }
 
     if (status === 403) {
       ElMessage.error('没有操作权限')
-      return Promise.reject(new BizError(403, '没有操作权限'))
+      return Promise.reject(new BizError(body?.code ?? 20002, '没有操作权限'))
+    }
+
+    if (status === 409) {
+      // 状态冲突 / 重复提交 / 乐观锁失败：提示后可让页面刷新，不当作系统故障
+      const traceId = body?.traceId || String(error.response?.headers['x-trace-id'] ?? '')
+      return Promise.reject(
+        new BizError(body?.code ?? 30199, body?.message ?? '数据已被修改，请刷新后重试', traceId),
+      )
+    }
+
+    if (status === 429) {
+      return Promise.reject(new BizError(20005, '操作过于频繁，请稍后再试'))
     }
 
     if (body && typeof body.code === 'number') {
-      return Promise.reject(new BizError(body.code, body.message || '请求失败', body.traceId))
+      // traceId 优先取响应体，取不到时用响应头，便于用户反馈问题时提供
+      const traceId = body.traceId || String(error.response?.headers['x-trace-id'] ?? '')
+      return Promise.reject(new BizError(body.code, body.message || '请求失败', traceId, body.data))
     }
 
     if (error.code === 'ECONNABORTED') {
@@ -208,16 +227,19 @@ import type { OrderDetail, OrderItem, OrderQuery } from '@/types/order'
 
 export const orderApi = {
   fetchOrderList(params: OrderQuery, signal?: AbortSignal) {
-    return request<PageResult<OrderItem>>({ url: '/order/list', method: 'get', params, signal })
+    return request<PageResult<OrderItem>>({ url: '/orders', method: 'get', params, signal })
   },
   fetchOrderDetail(id: string) {
-    return request<OrderDetail>({ url: `/order/${id}`, method: 'get' })
+    return request<OrderDetail>({ url: `/orders/${id}`, method: 'get' })
   },
   cancelOrder(id: string, reason: string) {
-    return request<void>({ url: `/order/${id}/cancel`, method: 'post', data: { reason } })
+    return request<void>({ url: `/orders/${id}/cancel`, method: 'post', data: { reason } })
   },
 }
 ```
+
+- `baseURL` 已在实例上配置为 `/api/v1`，接口文件只写资源路径（`/orders`），不重复写版本前缀。
+- 路径用复数资源名，动作放子路径；`/order/list` 这类动词式路径会被后端拒绝。
 
 - 一个业务域一个文件，导出一个 `xxxApi` 对象；不导出零散函数，调用处能看出归属。
 - 入参类型与后端契约一一对应，字段名不改写、不做驼峰/下划线转换（统一由后端返回驼峰，或由 `request` 层统一转换）。

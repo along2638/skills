@@ -156,6 +156,8 @@ com.acme.mall
 | 金额 | `BigDecimal`，`setScale(2, RoundingMode.HALF_UP)`，用 `compareTo` 比较 |
 | 时间 | `LocalDateTime` / `LocalDate`，统一 `Asia/Shanghai` |
 | 分页插件 | `PaginationInnerInterceptor(DbType.MYSQL)`，`maxLimit = 500` |
+| 分页响应 | `PageResp`：`records`/`total`/`pageNum`/`pageSize`/`pages`；字段名与前端统一，禁改 `list` |
+| 排序参数 | `sortBy` + `sortOrder`（`asc`/`desc`）成对出现，字段白名单校验 |
 | 连接池 | Druid 1.2.28；`spring.datasource.type=com.alibaba.druid.pool.DruidDataSource`，生产关闭监控页 |
 | 根包命名 | 产品/系统名（如 `com.acme.mall`）；单域扁平分包，多域才用 `modules/{domain}`；禁止用 `com.acme.order` 作根包 |
 | Service 结构 | 每个业务 Service 固定 `XxxService` 接口 + `service/impl/XxxServiceImpl`；Controller 只依赖接口 |
@@ -191,7 +193,7 @@ com.acme.mall
 | `references/tech-stack.md` | 选型、版本矩阵、pom、application.yml、配置类 |
 | `references/database.md` | 建表、字段类型、索引、SQL、逻辑删除、迁移 |
 | `references/java-coding.md` | 命名、Lombok、注入、Service/Mapper 写法、JDK 8 API 限制 |
-| `references/api-contract.md` | URL、统一响应、错误码、分页、校验、幂等、版本 |
+| `references/api-contract.md` | URL、统一响应、错误码、分页、校验、幂等、版本，以及**前后端契约对齐表** |
 | `references/exception-logging.md` | 异常体系、全局处理、日志级别、traceId、脱敏 |
 | `references/security.md` | 认证鉴权、密码、注入、上传、CORS、密钥管理 |
 | `references/testing.md` | 单元测试、集成测试、Mock、测试数据与覆盖要求 |

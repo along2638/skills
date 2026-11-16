@@ -12,6 +12,8 @@ description: 前端开发规范（Vue 3 + TypeScript + Vite + Pinia + Element Pl
 - 若项目是 **React / 小程序 / uni-app**：本规范不适用，只可参考分层与工程化部分。
 - 若项目是 **Nuxt**：目录约定换成 Nuxt 约定（`pages/`、`server/`、`composables/` 自动导入），`onMounted` 相关规则需按 SSR 语义调整。
 - 生成代码必须能通过 `tsc --noEmit` 与 ESLint；不确定项目版本时先读 `package.json`。
+- 接口契约与 `java-backend-standards` 技能严格对齐，承接侧规则见 `references/api-contract.md`。两份规范冲突时以后端实现与契约对齐表为准，并同步修正另一方。
+- 联调前必须核对 `references/api-contract.md` 第 12 节清单：路径、响应包、分页字段、ID/金额/时间格式、错误码、幂等头。任一项不一致都会产生"接口有数据但页面空白"这类不报错的静默故障。
 
 ## 基线（不可协商）
 
@@ -68,7 +70,8 @@ src
 ### 新增一个页面 / 功能（垂直切片）
 
 1. 阅读 `references/architecture.md`、`references/vue-coding.md`、`references/state-and-data.md`。
-2. 实现顺序：类型定义 → 接口函数 → store（需要时）→ 子组件 → 页面 → 路由注册 → 单元测试。
+2. 对接口前先读 `references/api-contract.md`，按第 12 节清单确认路径、响应包、分页字段与类型；契约没确认就写代码，返工成本最高。
+3. 实现顺序：类型定义 → 接口函数 → store（需要时）→ 子组件 → 页面 → 路由注册 → 单元测试。
 3. 同步补齐：三态（loading / error / empty）、表单校验、按钮权限、错误兜底、骨架屏或空态文案。
 4. 输出后逐条对照 `references/review-checklist.md` 自检。
 5. 需要端到端参照时，直接看 `references/example-feature.md` 的订单列表页切片。
@@ -138,6 +141,13 @@ src
 29. 路由必须懒加载；单 chunk > 500KB 必须拆分；列表超过 200 条必须虚拟滚动。
 30. token 与密钥不进源码；生产构建禁用 `console.log`；`target="_blank"` 必须带 `rel="noopener noreferrer"`。
 
+**接口契约（与后端规范对齐）**
+
+31. 接口路径形如 `/api/v1/{复数资源}`，`baseURL` 只在 `request.ts` 配置一次；禁止 `/order/list` 这类动词式路径，动作用子路径（`/orders/{id}/cancel`）。
+32. 响应包固定 `code` / `message` / `data` / `traceId`；业务判断只认 `code === 0`，禁止匹配 `message` 文案；分页响应取 `records`（不是 `list`），字段为 `records` / `total` / `pageNum` / `pageSize` / `pages`。
+33. ID 与金额一律按字符串处理，金额不在前端做运算；时间统一 `yyyy-MM-dd HH:mm:ss`（东八区）并显式指定解析格式；枚举为后端 code 字符串，未知值必须有兜底展示。
+34. 创建/支付/退款类请求必须带 `Idempotency-Key`；下载用 `responseType: 'blob'` 并识别 JSON 错误响应；401 / 403 / 429 / 409 分别处理，不统一按"网络异常"提示。
+
 ## 组件与 store 约定（强制）
 
 - 组件分三类，职责不混：
@@ -169,6 +179,15 @@ src
 | 组件库定制 | 覆盖 CSS 变量（`--el-color-primary`），不改 node_modules 源码 |
 | 图标 | 统一一套图标库（Element Plus 图标或 `unplugin-icons`） |
 | 打包 | 路由懒加载 + `manualChunks` 拆 vendor；`dist` 不入库 |
+| 接口 baseURL | `VITE_API_BASE_URL=/api/v1`，接口文件只写资源路径 |
+| 分页字段 | 响应 `data.records` / `total` / `pageNum` / `pageSize` / `pages` |
+| 分页参数 | 请求 `pageNum`（≥1）、`pageSize`（≤100）、`sortBy`、`sortOrder` |
+| 业务判断 | 只看 `code === 0`；`message` 仅用于展示 |
+| 校验失败 | HTTP 400 + `code=10001`，`data` 为 `{ field, message }[]`，回填表单 |
+| 认证失效 | 401 + `code=20001` → 清 token 跳登录，用标记防重复跳转 |
+| 幂等 | 请求头 `Idempotency-Key`，一次业务动作内复用同 key |
+| 链路追踪 | 请求带 `X-Request-Id`，错误对象保留响应 `traceId` / `X-Trace-Id` |
+| 文件下载 | `responseType: 'blob'`，从 `Content-Disposition` 取文件名，JSON 错误需识别 |
 
 ## 输出要求
 
@@ -187,6 +206,7 @@ src
 | `references/vue-coding.md` | 组件写法、props/emits、响应式、生命周期、模板指令 |
 | `references/typescript.md` | 类型设计、泛型、类型收窄、tsconfig、禁用 any 的替代写法 |
 | `references/state-and-data.md` | Pinia、请求层封装、错误处理、三态、缓存与表单 |
+| `references/api-contract.md` | 接口路径、响应包、分页字段、错误码、幂等、下载、联调清单 |
 | `references/ui-and-styles.md` | 样式分层、设计令牌、组件库定制、响应式、可访问性、国际化 |
 | `references/quality-tooling.md` | ESLint/Prettier/Stylelint、husky、commit 规范、CI |
 | `references/testing.md` | 单元测试、组件测试、接口 Mock、E2E、覆盖率 |
